@@ -20,20 +20,56 @@ app.use(bodyParser.urlencoded({
 
 app.get("/", async (req, res, next) => {
     console.log("Request recieved" + JSON.stringify(req.query))
-    const options = req.query
-    const {body} = await client.search({
-        index: ELS_INDEX,
-        size:10000,
-        // type: '_doc', // uncomment this line if you are using {es} ≤ 6
-        body: {
-            query: {
-                match_all:{}
-            }
-        }
-    })
-    res.json({body})
+
+    const  body  = await client.search(buildQuery(req.query))
+    res.json(body)
+    console.log("Request answered: ", JSON.stringify(body))
 })
 
 app.listen(4000, () => {
     console.log("Server running on port 4000");
 });
+
+function buildQuery(params) {
+    let request = {
+        "index": ELS_INDEX,
+        "size": 100,
+        "body" : {
+            "query": {
+                "bool": {
+                    "must": []
+                }
+            },
+        }
+    }
+    params[1] = JSON.parse(params[1])
+    console.log("Params: " + JSON.stringify(params))
+    if(params) {
+        if(params[1]) {
+
+            params[1].map((filter) => (
+                 request.body.query.bool.must.push({
+                     "match": {
+                         [filter[0]]: filter[1]
+                     }
+                 })
+
+            ))
+
+        }
+        console.log(JSON.stringify(params[1]))
+        if(params[0]) {
+            request.body.query.bool.must.push({
+                "multi_match": {
+                    "query": params[0],
+                    "fields": ["name", "addr:*"]
+                }
+            })
+        }
+
+    } else {
+        request.body.query.bool.must = {"match_all": {}}
+    }
+    console.log("Query:" + JSON.stringify(request))
+    return request
+}
