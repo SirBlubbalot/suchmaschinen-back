@@ -6,6 +6,9 @@ const ELS_INDEX = "rato1014_grmi1017_restaurants"
 
 const DEFAULT_LOC = [49.012923, 8.404327]
 const DEFAULT_RESULT_NUM = 20
+const DEFAULT_OPTIONS = {
+    "cuisine": ["regional", "italian", "burger"]
+}
 
 const {Client} = require('@elastic/elasticsearch')
 const client = new Client({node: ELS_IP})
@@ -22,9 +25,10 @@ app.use(bodyParser.json({
 }));
 
 app.get("/options/:optionName", async (req, res) => {
-    const resData = await client.search({
+    /*const resData = await client.search({
         //TODO: Options query
-    })
+    })*/
+    const resData = DEFAULT_OPTIONS[req.params.optionName]
     res.json(resData)
 })
 
