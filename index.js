@@ -15,7 +15,7 @@ const client = new Client({node: ELS_IP})
 
 
 app.use(function (req, res, next) {
-    res.header("Access-Control-Allow-Origin", "http://hka-bucket-suchmaschinen-01.s3-website-us-east-1.amazonaws.com/"); // update to match the domain you will make the request from
+    res.header("Access-Control-Allow-Origin", "*"); // update to match the domain you will make the request from
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     next();
 });
@@ -111,8 +111,7 @@ function buildQuery(params) {
             ],
             "query": {
                 "bool": {
-                    "should": [],
-                    "minimum_should_match": 1
+                    "must": []
                 }
             },
         }
@@ -124,9 +123,10 @@ function buildQuery(params) {
     }
 
     if (params.filtersSelection.cuisine.length !== 0) {
+        let filters = []
         Object.keys(params.filtersSelection).map((filter) => (
             params.filtersSelection[filter].map(value => {
-                request.body.query.bool.should.push(
+                filters.push(
                     {
                         "match": {
                             [filter]: value
@@ -134,18 +134,58 @@ function buildQuery(params) {
                     })
             })
         ))
-    } else {
-        request.body.query.bool.minimum_should_match = 0
+        request.body.query.bool.must.push({
+            "bool": {
+                "should": filters,
+                "minimum_should_match": 1
+            }
+        })
     }
+
     if (params.searchTerm) {
-        request.body.query.bool.must = [{
+        request.body.query.bool.must.push({
             "multi_match": {
                 "fuzziness": 3,
                 "query": params.searchTerm,
                 "fields": ["name", "addr:*"]
             }
-        }]
+        })
     }
+    if (params.filterAmenity.length !== 0) {
+        let amenityOptions = []
+        params.filterAmenity.map((amenity) => {
+            amenityOptions.push({
+                "match": {
+                    "amenity": amenity
+                }
+            })
+        })
+        request.body.query.bool.must.push({
+            "bool": {
+                "should": amenityOptions,
+                "minimum_should_match": 1
+            }
+        })
+    }
+
+    if (params.filtersCheckbox.length !== 0) {
+        let filters = []
+        params.filtersCheckbox.map((filter) => {
+                filters.push({
+                    "match": {
+                        [filter]: "yes"
+                    }
+                })
+            }
+        )
+        request.body.query.bool.must.push({
+            "bool": {
+                "should": filters,
+                "minimum_should_match": 1
+            }
+        })
+    }
+
     console.log(JSON.stringify(request))
     return request
 }
