@@ -71,11 +71,12 @@ app.post("/scroll", async (req, res) => {
         res.status(404);
         return;
     }
-    const resData = await client.search({
-        //TODO: scroll query
+    const resData = await client.scroll({
+        scrollId: req.query.scrollToken,
+        scroll: "10m"
     })
 
-    res.json(ret)
+    res.json(resData.body.hits.hits)
 })
 
 
