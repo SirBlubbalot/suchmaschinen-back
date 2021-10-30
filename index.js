@@ -57,8 +57,13 @@ app.get("/options/:optionName", async (req, res) => {
 app.post("/search", async (req, res) => {
     //console.log("Request recieved " + req.body)
     const resData = await client.search(buildQuery(req.body))
-    res.json(resData)
-    console.log("Request answered: ", resData)
+    console.log(resData)
+    const ret = {
+        result: resData.body.hits.hits,
+        scrollToken: resData.body._scroll_id
+    }
+    res.json(ret)
+    //console.log("Request answered: ", JSON.stringify(ret))
 })
 
 app.post("/scroll", async (req, res) => {
@@ -69,7 +74,8 @@ app.post("/scroll", async (req, res) => {
     const resData = await client.search({
         //TODO: scroll query
     })
-    res.json(resData)
+
+    res.json(ret)
 })
 
 
@@ -83,6 +89,7 @@ function buildQuery(params) {
     let request = {
         "index": ELS_INDEX,
         "size": DEFAULT_RESULT_NUM,
+        "scroll": "10m",
         "body": {
             "sort": [
                 {
