@@ -59,7 +59,7 @@ app.post("/search", async (req, res) => {
     const resData = await client.search(buildQuery(req.body))
     console.log(resData)
     const ret = {
-        result: resData.body.hits.hits,
+        results: resData.body.hits.hits,
         scrollToken: resData.body._scroll_id
     }
     res.json(ret)
@@ -72,10 +72,10 @@ app.post("/scroll", async (req, res) => {
         return;
     }
     const resData = await client.scroll({
-        scrollId: req.query.scrollToken,
-        scroll: "10m"
+        "scrollId": req.query.scrollToken,
+        "scroll": "10m"
     })
-
+    console.log(resData)
     res.json(resData.body.hits.hits)
 })
 
