@@ -25,18 +25,40 @@ app.use(bodyParser.json({
 }));
 
 app.get("/options/:optionName", async (req, res) => {
-    /*const resData = await client.search({
-        //TODO: Options query
-    })*/
-    const resData = DEFAULT_OPTIONS[req.params.optionName]
-    res.json(resData)
+    const optionName = req.params.optionName || "wheelchair"
+    const aggName = "option_query_" + optionName
+    let ret = []
+    const resData = await client.search(
+        {
+            "index": ELS_INDEX,
+            "size": DEFAULT_RESULT_NUM,
+            "body": {
+                "aggs": {
+                    [aggName]: {
+                        "terms": {"field": optionName + ".keyword", "size": 10000}
+                    }
+                },
+            }
+        }
+    ).then(result => {
+        result.body.aggregations[aggName].buckets.map(bucket => {
+            if (bucket.key.includes(';')) {
+                ret.concat(bucket.key.split(';'))
+            } else {
+                ret.push(bucket.key)
+            }
+        })
+        console.log(result.body.aggregations)
+    }) || DEFAULT_OPTIONS[optionName]
+    console.log(ret)
+    res.json(ret)
 })
 
 app.post("/search", async (req, res) => {
-    console.log("Request recieved " + JSON.stringify(req.body))
+    //console.log("Request recieved " + req.body)
     const resData = await client.search(buildQuery(req.body))
     res.json(resData)
-    console.log("Request answered: ", JSON.stringify(resData))
+    console.log("Request answered: ", resData)
 })
 
 app.post("/scroll", async (req, res) => {
@@ -56,6 +78,7 @@ app.listen(4000, () => {
 });
 
 function buildQuery(params) {
+    console.log(params)
     params.location = params.location || DEFAULT_LOC
     let request = {
         "index": ELS_INDEX,
@@ -64,7 +87,7 @@ function buildQuery(params) {
             "sort": [
                 {
                     "_geo_distance": {
-                        "pin.location": params.location,
+                        "pin.location": [params.location["lat"], params.location["lng"]],
                         "order": "asc",
                         "unit": "km",
                         "mode": "min",
@@ -75,32 +98,38 @@ function buildQuery(params) {
             ],
             "query": {
                 "bool": {
-                    "must": [],
-                    "filter": []
+                    "should": [],
+                    "minimum_should_match": 1
                 }
             },
         }
     }
+    if (!params.searchTerm && params.filtersSelection.cuisine === "") {
+        request.body.query = {
+            "match_all": {}
+        }
+    }
 
-
-    if (params.filtersSelection) {
-        params.filtersSelection.entries().map((key, value) => (
-            request.body.query.bool.filter.push({
-                "match": {
-                    key: value
-                }
+    if (params.filtersSelection.cuisine !== "") {
+        Object.keys(params.filtersSelection).map((filter) => (
+            params.filtersSelection[filter].map(value => {
+                request.body.query.bool.should.push(
+                    {
+                        "match": {
+                            [filter]: value
+                        }
+                    })
             })
-
         ))
-
     }
     if (params.searchTerm) {
-        request.body.query.bool.must.push({
+        request.body.query.bool.must = [{
             "multi_match": {
-                "query": params[0],
+                "query": params.searchTerm,
                 "fields": ["name", "addr:*"]
             }
-        })
+        }]
     }
+    console.log(JSON.stringify(request))
     return request
 }
