@@ -94,11 +94,11 @@ function buildQuery(params) {
             "sort": [
                 {
                     "_geo_distance": {
-                        "pin.location": [params.location["lat"], params.location["lng"]],
+                        "coordinates": [params.location["lng"], params.location["lat"]],
                         "order": "asc",
                         "unit": "km",
                         "mode": "min",
-                        "distance_type": "arc",
+                        "distance_type": "plane",
                         "ignore_unmapped": true
                     }
                 }
@@ -117,7 +117,7 @@ function buildQuery(params) {
         }
     }
 
-    if (params.filtersSelection.cuisine !== "") {
+    if (params.filtersSelection.cuisine.length !== 0) {
         Object.keys(params.filtersSelection).map((filter) => (
             params.filtersSelection[filter].map(value => {
                 request.body.query.bool.should.push(
@@ -128,10 +128,13 @@ function buildQuery(params) {
                     })
             })
         ))
+    } else {
+        request.body.query.bool.minimum_should_match = 0
     }
     if (params.searchTerm) {
         request.body.query.bool.must = [{
             "multi_match": {
+                "fuzziness": 3,
                 "query": params.searchTerm,
                 "fields": ["name", "addr:*"]
             }
