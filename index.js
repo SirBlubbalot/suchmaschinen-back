@@ -67,7 +67,7 @@ app.post("/search", async (req, res) => {
 })
 
 app.post("/scroll", async (req, res) => {
-    if (!req.query.scrollToken) {
+    if (!req.body.scrollToken) {
         res.status(404);
         return;
     }
