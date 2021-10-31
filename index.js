@@ -65,14 +65,11 @@ app.get("/options/:optionName", async (req, res) => {
                 ret.push(bucket.key)
             }
         })
-        console.log(result.body.aggregations)
     }) || DEFAULT_OPTIONS[optionName]
-    console.log(ret)
     res.json(ret)
 })
 
 app.post("/search", async (req, res) => {
-    //console.log("Request recieved " + req.body)
     const resData = await client.search(buildQuery(req.body))
     console.log(resData)
     resData.body.hits.hits.map(entry => {
@@ -83,7 +80,6 @@ app.post("/search", async (req, res) => {
         scrollToken: resData.body._scroll_id
     }
     res.json(ret)
-    //console.log("Request answered: ", JSON.stringify(ret))
 })
 
 app.post("/scroll", async (req, res) => {
