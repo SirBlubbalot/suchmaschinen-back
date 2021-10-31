@@ -76,7 +76,7 @@ app.post("/search", async (req, res) => {
     const resData = await client.search(buildQuery(req.body))
     console.log(resData)
     const ret = {
-        results: resData.body.hits.hits,
+        results: resData.body.hits.hits.map(entry => (entry._source)),
         scrollToken: resData.body._scroll_id
     }
     res.json(ret)
@@ -95,7 +95,7 @@ app.post("/scroll", async (req, res) => {
     })
     console.log(resData)
     const ret = {
-        results: resData.body.hits.hits,
+        results: resData.body.hits.hits.map(entry => (entry._source)),
         scrollToken: resData.body._scroll_id
     }
     res.json(ret)
