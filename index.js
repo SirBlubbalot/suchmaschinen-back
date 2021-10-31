@@ -10,6 +10,23 @@ const DEFAULT_OPTIONS = {
     "cuisine": ["regional", "italian", "burger"]
 }
 
+const CHECKBOX_FILTER_MAPPING = {
+    "wheelchair": {
+        "match": {
+            "wheelchair": "yes"
+        }
+    },
+    "takeaway": {
+        "match": {
+            "takeaway": "yes"
+        }
+    },
+    "website": {
+        "exists": {
+            "field": "website"
+        }
+    }
+}
 const {Client} = require('@elastic/elasticsearch')
 const client = new Client({node: ELS_IP})
 
@@ -169,19 +186,15 @@ function buildQuery(params) {
     }
 
     if (params.filtersCheckbox.length !== 0) {
+
         let filters = []
         params.filtersCheckbox.map((filter) => {
-                filters.push({
-                    "match": {
-                        [filter]: "yes"
-                    }
-                })
+                filters.push(CHECKBOX_FILTER_MAPPING[filter])
             }
         )
         request.body.query.bool.must.push({
             "bool": {
-                "should": filters,
-                "minimum_should_match": 1
+                "must": filters
             }
         })
     }
